@@ -1,6 +1,31 @@
 import json
 import urllib.parse
 import feedparser
+import requests
+import re
+import boto3
+import os
+
+def upload_file_to_s3(file_path, bucket_name, object_name=None):
+    # If S3 object_name is not specified, use file_name
+    if object_name is None:
+        object_name = file_path
+
+    # Create an S3 client
+    s3_client = boto3.client('s3',
+                             aws_access_key_id='AKIAQT2YWNM4BE2J54FQ',
+                            aws_secret_access_key='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',
+                            region_name='us-west-2' )
+    try:
+        # Upload the file to S3 bucket
+        response = s3_client.upload_file(file_path, bucket_name, object_name)
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        return False
+    else:
+        print("Upload successful")
+        return True
+
 
 def paper_link(title):
     # TODO implement
@@ -55,9 +80,19 @@ def paper_link(title):
         print(f"PDF Link: {pdf_link}")
         print("\n" + "="*80 + "\n")
         
-    return {
-        'statusCode': 200,
-        'body': pdf_link
-    }
+    response = requests.get(pdf_link)
+    # Raise an exception if the request was not successful
+    response.raise_for_status()
+    regular_filename = re.sub(r'[^\w\s]', '', title.replace('\n', ''))
+    regular_filename = regular_filename.replace(' ', '_')
+    
+    # Open the local file in binary write mode
+    with open(f"{regular_filename}.pdf", 'wb') as f:
+        # Write the content of the response to the local file
+        f.write(response.content)
+        
+    upload_file_to_s3(f"{regular_filename}.pdf", "researchbucketpdf")
+    
+    os.remove(f"{regular_filename}.pdf")
     
 paper_link("Electron thermal conductivity owing to collisions between degenerate electrons")
