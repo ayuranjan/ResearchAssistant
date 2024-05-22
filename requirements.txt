@@ -1,3 +1,8 @@
 feedparser
 boto3
 requests
+feedparser
+boto3
+python-dotenv
+flask
+PyMuPDF

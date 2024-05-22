@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 import os
 import fitz  # PyMuPDF
 import boto3
+import json
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -10,7 +11,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Initialize AWS client (assuming you have set up AWS credentials)
 # Note: For real usage, ensure you have the required AWS permissions and set up your environment correctly.
 # Here, we will mock this for simplicity.
-bedrock_client = boto3.client('bedrock-runtime', region_name='us-west-2')
+bedrock_client = boto3.client('bedrock-runtime',
+    aws_access_key_id = 'AKIAQT2YWNM4BE2J54FQ',
+    aws_secret_access_key = 'YQFcu5GOlJIrvLKa9llj41zJ3hB+o0MrRbYwQUn4', region_name='us-west-2')
 
 @app.route('/sample')
 def serve_html():
@@ -44,12 +47,31 @@ def extract_text_from_pdf(file_path):
 def extract_citations(text):
     # Mocking Amazon Bedrock response
     # Normally, you would send the text to the Bedrock model and parse the response.
+    # response = bedrock_client.invoke_model(
+    #     ModelId='anthropic.claude-3-sonnet-20240229-v1:0',
+    #     ContentType='text/plain',
+    #     Body=text
+    # )
+    body = {
+        "prompt": "Human: I will provide you a paper, can you list all the references present in the paper as a python list. Don't mention anything extra just return a python list of string containing the paper title.  The paper :"+text + "Assistant:",
+        "max_tokens_to_sample": 1024 
+    }
+
+    
+#     response = bedrock_client.invoke_model(
+#     modelId='anthropic.claude-3-sonnet-20240229-v1:0',
+#     contentType= 'string', # 'application/json',  #text/plain',
+#     body=text
+# )
     response = bedrock_client.invoke_model(
-        ModelId='anthropic.claude-3-sonnet-20240229-v1:0',
-        ContentType='text/plain',
-        Body=text
-    )
-    parsed_response = response['Body'].read().decode('utf-8')
+        body=json.dumps(body),
+        modelId='anthropic.claude-v2',
+        accept="application/json",  # Specify desired response format (e.g., JSON)
+        contentType="application/json"  # Specify format of request body
+)
+    print(response)
+    parsed_response = response['body'].read().decode('utf-8')
+    print(parsed_response)
     
     # Mocked citations extraction
     # print(text)
